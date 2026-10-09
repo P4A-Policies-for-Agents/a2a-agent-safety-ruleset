@@ -195,6 +195,28 @@ BAD = {
         d.pop("securitySchemes"),
         d.pop("securityRequirements"),
     ),
+    # Each replaces the flows object, so the authorizationCode PKCE rule has nothing to check.
+    "oauth-no-implicit-flow": lambda d: put(scheme(d, "oauth"), "flows", {
+        "implicit": {"authorizationUrl": "https://auth.example.com/authorize", "scopes": {"weather:read": "Read weather data"}}
+    }),
+    "oauth-no-password-flow": lambda d: put(scheme(d, "oauth"), "flows", {
+        "password": {"tokenUrl": "https://auth.example.com/token", "scopes": {"weather:read": "Read weather data"}}
+    }),
+    "oauth-metadata-url-https": lambda d: put(
+        scheme(d, "oauth"), "oauth2MetadataUrl", "http://auth.example.com/.well-known/oauth-authorization-server"
+    ),
+    "oauth-pkce-required.false": lambda d: put(oauth_flows(d)["authorizationCode"], "pkceRequired", False),
+    "oauth-pkce-required.missing": lambda d: oauth_flows(d)["authorizationCode"].pop("pkceRequired"),
+    "oauth-flows-json-camel-case": lambda d: rename(oauth_flows(d), "authorizationCode", "authorization_code"),
+    # One fixture per alias, so a typo in a snake* prefix namespace (ruleset.yaml) can't hide.
+    "oauth-flows-json-camel-case.client-credentials": lambda d: put(oauth_flows(d), "client_credentials", {
+        "tokenUrl": "https://auth.example.com/token", "scopes": {"weather:read": "Read weather data"}
+    }),
+    "oauth-flows-json-camel-case.device-code": lambda d: put(oauth_flows(d), "device_code", {
+        "deviceAuthorizationUrl": "https://auth.example.com/device",
+        "tokenUrl": "https://auth.example.com/token",
+        "scopes": {"weather:read": "Read weather data"},
+    }),
 }
 
 # Fixtures that legitimately trip more than one rule: name -> every "<id>:<Severity>" expected.

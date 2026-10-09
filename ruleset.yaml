@@ -8,11 +8,21 @@ description: >-
 prefixes:
   api: http://anypoint.com/vocabs/api#
   catalog: http://anypoint.com/vocabs/digital-repository#
+  # snake_case aliases (camelCase rules). Compact IRIs can't contain `_`, so each prefix's
+  # namespace ends with the alias's leading words: snakeSecurity.schemes is core#security_schemes.
+  snakeAuthorization: http://a.ml/vocabularies/core#authorization_
+  snakeClient: http://a.ml/vocabularies/core#client_
+  snakeDevice: http://a.ml/vocabularies/core#device_
 violation:
   - extended-card-requires-auth
   - interface-url-https
+  - oauth-flows-json-camel-case
+  - oauth-metadata-url-https
+  - oauth-no-implicit-flow
+  - oauth-no-password-flow
 warning:
   - card-security-declared
+  - oauth-pkce-required
 validations:
   interface-url-https:
     message: This supportedInterfaces entry's `url` does not start with https://. Serve the interface over TLS and publish its https URL (A2A v1.0 requires encrypted transport in production).
@@ -84,3 +94,87 @@ validations:
           minCount: 1
         api.contract / doc.encodes / core.securityRequirements:
           minCount: 1
+  oauth-no-implicit-flow:
+    message: This OAuth 2.0 scheme declares the implicit flow, which is deprecated. Replace it with authorizationCode with PKCE.
+    documentation: |
+      The implicit flow returns access tokens in the browser redirect, where they leak through
+      history, referrers and logs. OAuth 2.0 Security Best Current Practice deprecates it, and
+      A2A v1.0 marks it deprecated.
+    examples:
+      valid: |
+        {"oauth2SecurityScheme": {"flows": {"authorizationCode": {"authorizationUrl": "https://auth.example.com/authorize", "tokenUrl": "https://auth.example.com/token", "scopes": {}, "pkceRequired": true}}}}
+      invalid: |
+        {"oauth2SecurityScheme": {"flows": {"implicit": {"authorizationUrl": "https://auth.example.com/authorize", "scopes": {}}}}}
+    targetClass: core.oauth2SecurityScheme
+    propertyConstraints:
+      core.flows / core.implicit:
+        maxCount: 0
+  oauth-no-password-flow:
+    message: This OAuth 2.0 scheme declares the password flow, which is deprecated. Replace it with authorizationCode, clientCredentials or deviceCode.
+    documentation: |
+      The resource owner password flow hands the user's password to the client. OAuth 2.0
+      Security Best Current Practice forbids it, and A2A v1.0 marks it deprecated.
+    examples:
+      valid: |
+        {"oauth2SecurityScheme": {"flows": {"clientCredentials": {"tokenUrl": "https://auth.example.com/token", "scopes": {}}}}}
+      invalid: |
+        {"oauth2SecurityScheme": {"flows": {"password": {"tokenUrl": "https://auth.example.com/token", "scopes": {}}}}}
+    targetClass: core.oauth2SecurityScheme
+    propertyConstraints:
+      core.flows / core.password:
+        maxCount: 0
+  oauth-metadata-url-https:
+    message: This OAuth 2.0 scheme's `oauth2MetadataUrl` does not start with https://. Publish the authorization server metadata over TLS.
+    documentation: |
+      Clients discover the token and authorization endpoints from oauth2MetadataUrl
+      (RFC 8414). Over plain HTTP an attacker can swap in their own endpoints and harvest
+      credentials. RFC 8414 requires TLS for the metadata document.
+    examples:
+      valid: |
+        {"oauth2SecurityScheme": {"oauth2MetadataUrl": "https://auth.example.com/.well-known/oauth-authorization-server"}}
+      invalid: |
+        {"oauth2SecurityScheme": {"oauth2MetadataUrl": "http://auth.example.com/.well-known/oauth-authorization-server"}}
+    targetClass: core.oauth2SecurityScheme
+    propertyConstraints:
+      core.oauth2MetadataUrl:
+        pattern: "^https://"
+  oauth-pkce-required:
+    message: This OAuth 2.0 scheme's authorizationCode flow does not set `pkceRequired` to true. Require PKCE at the authorization server and set pkceRequired to true.
+    documentation: |
+      PKCE stops intercepted authorization codes from being redeemed. OAuth 2.0 Security Best
+      Current Practice recommends it for every client. A2A v1.0 exposes pkceRequired so
+      clients know to send a code challenge.
+    examples:
+      valid: |
+        {"authorizationCode": {"authorizationUrl": "https://auth.example.com/authorize", "tokenUrl": "https://auth.example.com/token", "scopes": {}, "pkceRequired": true}}
+      invalid: |
+        {"authorizationCode": {"authorizationUrl": "https://auth.example.com/authorize", "tokenUrl": "https://auth.example.com/token", "scopes": {}}}
+    targetClass: core.oauth2SecurityScheme
+    if:
+      propertyConstraints:
+        core.flows / core.authorizationCode:
+          minCount: 1
+    then:
+      propertyConstraints:
+        core.flows / core.authorizationCode / core.pkceRequired:
+          minCount: 1
+          in: [true]
+  oauth-flows-json-camel-case:
+    message: This OAuth 2.0 scheme's flows use authorization_code, client_credentials or device_code. Rename them to authorizationCode, clientCredentials or deviceCode; snake_case hides the flow from clients and from the PKCE rule.
+    documentation: |
+      A2A v1.0 JSON MUST use camelCase. Anypoint's card schema accepts snake_case flow names but
+      stores them under a different name. Clients then don't see the flow, and the PKCE rule
+      can't check it.
+    examples:
+      valid: |
+        {"flows": {"authorizationCode": {"pkceRequired": true}}}
+      invalid: |
+        {"flows": {"authorization_code": {"pkce_required": false}}}
+    targetClass: core.oauth2SecurityScheme
+    propertyConstraints:
+      core.flows / snakeAuthorization.code:
+        maxCount: 0
+      core.flows / snakeClient.credentials:
+        maxCount: 0
+      core.flows / snakeDevice.code:
+        maxCount: 0
