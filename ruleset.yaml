@@ -1,0 +1,28 @@
+#%Validation Profile 1.0
+profile: A2A Agent Safety
+description: >-
+  Safety checks for A2A v1.0 Agent Cards (Exchange classifier a2a-v1-card): interfaces and
+  auth endpoints use HTTPS, an extended card is protected by declared authentication, OAuth
+  avoids deprecated flows and requires PKCE, API keys stay out of query strings, and the card
+  is signed. Pairs with A2A Agent Card Conformance.
+prefixes:
+  api: http://anypoint.com/vocabs/api#
+  catalog: http://anypoint.com/vocabs/digital-repository#
+violation:
+  - interface-url-https
+validations:
+  interface-url-https:
+    message: This supportedInterfaces entry's `url` does not start with https://. Serve the interface over TLS and publish its https URL (A2A v1.0 requires encrypted transport in production).
+    documentation: |
+      A2A v1.0 says production deployments MUST use encrypted transport. A plain-HTTP interface
+      exposes tasks, messages and bearer tokens to anyone on the path. This rule also flags
+      local development cards, which is intended for governed Exchange assets.
+    examples:
+      valid: |
+        {"url": "https://agent.example.com/a2a", "protocolBinding": "JSONRPC", "protocolVersion": "1.0"}
+      invalid: |
+        {"url": "http://agent.example.com/a2a", "protocolBinding": "JSONRPC", "protocolVersion": "1.0"}
+    targetClass: core.supportedInterfaces
+    propertyConstraints:
+      core.url:
+        pattern: "^https://"
