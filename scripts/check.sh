@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 # --- per-repo config ---
 EXPECTED_AUTHORING_WARNINGS=0
 # validate-authoring has no A2A domain, so it rejects these per-element targetClasses (README "Limitations").
-AUTHORING_ALLOWED_CLASSES="core.supportedInterfaces core.oauth2SecurityScheme core.apiKeySecurityScheme core.openIdConnectSecurityScheme"
+AUTHORING_ALLOWED_CLASSES="core.supportedInterfaces core.oauth2SecurityScheme core.apiKeySecurityScheme core.openIdConnectSecurityScheme snakeApiKeySecurity.scheme snakeOpenIdConnectSecurity.scheme"
 SIBLING_GOOD=../a2a-agent-card-conformance-ruleset/fixtures/good
 # -----------------------
 

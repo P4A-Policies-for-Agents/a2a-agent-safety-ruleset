@@ -1,0 +1,9 @@
+{
+  "main": "agent-card.json",
+  "name": "bad-oauth-flow-urls-https",
+  "groupId": "p4a-fixtures",
+  "assetId": "bad-oauth-flow-urls-https",
+  "version": "1.0.0",
+  "classifier": "a2a-v1-card",
+  "descriptorVersion": "1.0.0"
+}

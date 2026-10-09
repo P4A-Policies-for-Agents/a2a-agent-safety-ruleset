@@ -10,19 +10,25 @@ prefixes:
   catalog: http://anypoint.com/vocabs/digital-repository#
   # snake_case aliases (camelCase rules). Compact IRIs can't contain `_`, so each prefix's
   # namespace ends with the alias's leading words: snakeSecurity.schemes is core#security_schemes.
+  snakeApiKeySecurity: http://a.ml/vocabularies/core#api_key_security_
   snakeAuthorization: http://a.ml/vocabularies/core#authorization_
   snakeClient: http://a.ml/vocabularies/core#client_
   snakeDevice: http://a.ml/vocabularies/core#device_
+  snakeExtendedAgent: http://a.ml/vocabularies/core#extended_agent_
+  snakeOpenIdConnectSecurity: http://a.ml/vocabularies/core#open_id_connect_security_
   snakeSecurity: http://a.ml/vocabularies/core#security_
   snakeSupported: http://a.ml/vocabularies/core#supported_
 violation:
+  - api-key-scheme-json-camel-case
   - card-security-json-camel-case
   - extended-card-requires-auth
   - interface-url-https
+  - oauth-flow-urls-https
   - oauth-flows-json-camel-case
   - oauth-metadata-url-https
   - oauth-no-implicit-flow
   - oauth-no-password-flow
+  - oidc-scheme-json-camel-case
   - oidc-url-https
 warning:
   - api-key-not-in-query
@@ -238,7 +244,7 @@ validations:
         api.contract / doc.encodes / core.signatures:
           minCount: 1
   card-security-json-camel-case:
-    message: Agent Card uses supported_interfaces, security_schemes or security_requirements. Rename them to camelCase, because snake_case hides interfaces and schemes from clients and from every safety rule.
+    message: Agent Card uses supported_interfaces, security_schemes, security_requirements or capabilities.extended_agent_card. Rename them to camelCase, because snake_case hides interfaces, schemes and the extended-card flag from clients and from every safety rule.
     documentation: |
       A2A v1.0 JSON MUST use camelCase. Anypoint's card schema accepts these snake_case aliases
       but stores them under different names, so an http interface or a weak scheme behind them
@@ -262,3 +268,69 @@ validations:
           maxCount: 0
         api.contract / doc.encodes / snakeSecurity.requirements:
           maxCount: 0
+        api.contract / doc.encodes / core.capabilities / snakeExtendedAgent.card:
+          maxCount: 0
+  oauth-flow-urls-https:
+    message: An OAuth 2.0 flow endpoint (authorizationUrl, tokenUrl, refreshUrl or deviceAuthorizationUrl) does not start with https://. Serve every authorization server endpoint over TLS.
+    documentation: |
+      Authorization codes, tokens, refresh tokens and client secrets travel to these endpoints.
+      Over plain HTTP anyone on the path can read or replace them. OAuth 2.0 (RFC 6749,
+      section 3.1) requires TLS for the authorization and token endpoints. The implicit and
+      password flows are checked by their own rules.
+    examples:
+      valid: |
+        {"flows": {"authorizationCode": {"authorizationUrl": "https://auth.example.com/authorize", "tokenUrl": "https://auth.example.com/token"}}}
+      invalid: |
+        {"flows": {"authorizationCode": {"authorizationUrl": "https://auth.example.com/authorize", "tokenUrl": "http://auth.example.com/token"}}}
+    targetClass: core.oauth2SecurityScheme
+    propertyConstraints:
+      core.flows / core.authorizationCode / core.authorizationUrl:
+        pattern: "^https://"
+      core.flows / core.authorizationCode / core.tokenUrl:
+        pattern: "^https://"
+      core.flows / core.authorizationCode / core.refreshUrl:
+        pattern: "^https://"
+      core.flows / core.clientCredentials / core.tokenUrl:
+        pattern: "^https://"
+      core.flows / core.clientCredentials / core.refreshUrl:
+        pattern: "^https://"
+      core.flows / core.deviceCode / core.deviceAuthorizationUrl:
+        pattern: "^https://"
+      core.flows / core.deviceCode / core.tokenUrl:
+        pattern: "^https://"
+      core.flows / core.deviceCode / core.refreshUrl:
+        pattern: "^https://"
+  # The two rules below fire on every node of their class: a node can't have both at least one
+  # and at most zero values. Their classes only exist when the card uses the snake_case wrapper.
+  api-key-scheme-json-camel-case:
+    message: A security scheme uses the snake_case wrapper `api_key_security_scheme`. Rename it to `apiKeySecurityScheme`; A2A v1.0 JSON MUST use camelCase, and the alias hides the scheme from api-key-not-in-query.
+    documentation: |
+      A2A v1.0 says the JSON form of the card MUST use camelCase. Anypoint's card schema also
+      accepts the proto-style `api_key_security_scheme` wrapper and does not normalize it, so
+      an API key sent in the query string would pass api-key-not-in-query unseen.
+    examples:
+      valid: |
+        {"securitySchemes": {"key": {"apiKeySecurityScheme": {"location": "header", "name": "X-API-Key"}}}}
+      invalid: |
+        {"securitySchemes": {"key": {"api_key_security_scheme": {"location": "header", "name": "X-API-Key"}}}}
+    targetClass: snakeApiKeySecurity.scheme
+    propertyConstraints:
+      core.name:
+        minCount: 1
+        maxCount: 0
+  oidc-scheme-json-camel-case:
+    message: A security scheme uses the snake_case wrapper `open_id_connect_security_scheme`. Rename it to `openIdConnectSecurityScheme`; A2A v1.0 JSON MUST use camelCase, and the alias hides the scheme from oidc-url-https.
+    documentation: |
+      A2A v1.0 says the JSON form of the card MUST use camelCase. Anypoint's card schema also
+      accepts the proto-style `open_id_connect_security_scheme` wrapper and does not normalize
+      it, so a plain-HTTP discovery URL would pass oidc-url-https unseen.
+    examples:
+      valid: |
+        {"securitySchemes": {"oidc": {"openIdConnectSecurityScheme": {"openIdConnectUrl": "https://id.example.com/.well-known/openid-configuration"}}}}
+      invalid: |
+        {"securitySchemes": {"oidc": {"open_id_connect_security_scheme": {"openIdConnectUrl": "https://id.example.com/.well-known/openid-configuration"}}}}
+    targetClass: snakeOpenIdConnectSecurity.scheme
+    propertyConstraints:
+      core.openIdConnectUrl:
+        minCount: 1
+        maxCount: 0

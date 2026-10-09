@@ -19,8 +19,11 @@ only secure ways to reach and authenticate to the agent.
 | `oauth-no-password-flow` | violation | Password flow hands passwords to clients; deprecated | Use `authorizationCode`, `clientCredentials` or `deviceCode` |
 | `oauth-metadata-url-https` | violation | Metadata over HTTP lets attackers swap endpoints | Use an `https://` `oauth2MetadataUrl` |
 | `oidc-url-https` | violation | Discovery over HTTP lets attackers swap keys | Set an `https://` `openIdConnectUrl` |
-| `card-security-json-camel-case` | violation | snake_case hides interfaces and schemes from every rule | Use camelCase |
+| `card-security-json-camel-case` | violation | snake_case hides interfaces, schemes and the extended-card flag from every rule | Use camelCase |
 | `oauth-flows-json-camel-case` | violation | snake_case hides flows from the PKCE rule | Use camelCase flow names |
+| `oauth-flow-urls-https` | violation | Codes, tokens and secrets travel to these endpoints | Serve `authorizationUrl`, `tokenUrl`, `refreshUrl` and `deviceAuthorizationUrl` on `https://` |
+| `api-key-scheme-json-camel-case` | violation | `api_key_security_scheme` hides the key from `api-key-not-in-query` | Rename to `apiKeySecurityScheme` |
+| `oidc-scheme-json-camel-case` | violation | `open_id_connect_security_scheme` hides the URL from `oidc-url-https` | Rename to `openIdConnectSecurityScheme` |
 | `card-security-declared` | warning | Clients can't discover how to authenticate | Declare `securitySchemes` and `securityRequirements` |
 | `oauth-pkce-required` | warning | Intercepted codes can be redeemed without PKCE | Set `pkceRequired: true` |
 | `api-key-not-in-query` | warning | Query strings end up in logs | Send the key in a header |
@@ -45,9 +48,8 @@ through a governance profile that covers your A2A agent card assets.
 - **Signatures are checked for presence only.** JWS verification is a runtime concern.
 - **`interface-url-https` also flags local development cards.** That is intended for governed
   Exchange assets.
-- **snake_case scheme wrappers aren't detected.** `api_key_security_scheme` and
-  `open_id_connect_security_scheme` sit under user-chosen scheme names, so a card using them
-  evades `api-key-not-in-query` and `oidc-url-https`.
+- **snake_case fields inside schemes and flows aren't all checked.** The wrappers and flow names
+  are, but an alias such as `token_url` or `pkce_required` reads as a missing field.
 - **snake_case aliases are matched through `snake*` prefixes.** Compact IRIs can't contain
   `_`, so a path such as `core.security_schemes` makes the validator panic. `ruleset.yaml`
   declares prefixes whose namespace ends with the alias's leading words (`snakeSecurity:
@@ -55,7 +57,8 @@ through a governance profile that covers your A2A agent card assets.
   `snakeSecurity.schemes`. Each alias has its own bad fixture.
 - **`validate-authoring` false errors.** It has no A2A domain, so it reports `Invalid
   targetClass` for `core.supportedInterfaces`, `core.oauth2SecurityScheme`,
-  `core.apiKeySecurityScheme` and `core.openIdConnectSecurityScheme`.
+  `core.apiKeySecurityScheme`, `core.openIdConnectSecurityScheme` and the two snake_case
+  wrapper classes.
   `governance:ruleset:validate` accepts the ruleset, and the fixtures prove each rule.
 
 ## Development

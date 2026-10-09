@@ -1,7 +1,7 @@
 {
   "main": "ruleset.yaml",
   "name": "A2A Agent Safety",
-  "description": "Safety checks for A2A v1.0 Agent Cards: HTTPS interfaces and auth endpoints, authenticated extended cards, no deprecated OAuth flows, PKCE, API keys out of query strings, signed cards, and camelCase JSON.",
+  "description": "Safety checks for A2A v1.0 Agent Cards: HTTPS interfaces, OAuth and OIDC endpoints, authenticated extended cards, no deprecated OAuth flows, PKCE, API keys out of query strings, signed cards, and camelCase JSON.",
   "assetId": "a2a-agent-safety",
   "version": "1.0.0"
 }

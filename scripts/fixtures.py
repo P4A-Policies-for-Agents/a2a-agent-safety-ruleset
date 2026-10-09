@@ -231,6 +231,38 @@ BAD = {
     "card-security-json-camel-case.security-requirements": lambda d: rename(
         d, "securityRequirements", "security_requirements"
     ),
+    # Final review: the capability alias hid extendedAgentCard from extended-card-requires-auth.
+    "card-security-json-camel-case.extended-agent-card": lambda d: rename(
+        d["capabilities"], "extendedAgentCard", "extended_agent_card"
+    ),
+    # Final review: snake_case scheme wrappers hid the scheme from api-key-not-in-query and oidc-url-https.
+    "api-key-scheme-json-camel-case": lambda d: rename(
+        d["securitySchemes"]["key"], "apiKeySecurityScheme", "api_key_security_scheme"
+    ),
+    "oidc-scheme-json-camel-case": lambda d: rename(
+        d["securitySchemes"]["oidc"], "openIdConnectSecurityScheme", "open_id_connect_security_scheme"
+    ),
+    # Final review: OAuth flow endpoints, one fixture per checked URL.
+    "oauth-flow-urls-https": lambda d: put(oauth_flows(d)["authorizationCode"], "authorizationUrl", "http://auth.example.com/authorize"),
+    "oauth-flow-urls-https.token-url": lambda d: put(oauth_flows(d)["authorizationCode"], "tokenUrl", "http://auth.example.com/token"),
+    "oauth-flow-urls-https.refresh-url": lambda d: put(oauth_flows(d)["authorizationCode"], "refreshUrl", "http://auth.example.com/refresh"),
+    "oauth-flow-urls-https.client-credentials": lambda d: put(oauth_flows(d), "clientCredentials", {
+        "tokenUrl": "http://auth.example.com/token", "scopes": {"weather:read": "Read weather data"}
+    }),
+    "oauth-flow-urls-https.client-credentials-refresh": lambda d: put(oauth_flows(d), "clientCredentials", {
+        "tokenUrl": "https://auth.example.com/token", "refreshUrl": "http://auth.example.com/refresh", "scopes": {}
+    }),
+    "oauth-flow-urls-https.device-code": lambda d: put(oauth_flows(d), "deviceCode", {
+        "deviceAuthorizationUrl": "http://auth.example.com/device",
+        "tokenUrl": "https://auth.example.com/token",
+        "scopes": {"weather:read": "Read weather data"},
+    }),
+    "oauth-flow-urls-https.device-code-token": lambda d: put(oauth_flows(d), "deviceCode", {
+        "deviceAuthorizationUrl": "https://auth.example.com/device",
+        "tokenUrl": "http://auth.example.com/token",
+        "refreshUrl": "http://auth.example.com/refresh",
+        "scopes": {},
+    }),
 }
 
 # Fixtures that legitimately trip more than one rule: name -> every "<id>:<Severity>" expected.
