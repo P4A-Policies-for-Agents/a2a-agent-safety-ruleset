@@ -13,16 +13,23 @@ prefixes:
   snakeAuthorization: http://a.ml/vocabularies/core#authorization_
   snakeClient: http://a.ml/vocabularies/core#client_
   snakeDevice: http://a.ml/vocabularies/core#device_
+  snakeSecurity: http://a.ml/vocabularies/core#security_
+  snakeSupported: http://a.ml/vocabularies/core#supported_
 violation:
+  - card-security-json-camel-case
   - extended-card-requires-auth
   - interface-url-https
   - oauth-flows-json-camel-case
   - oauth-metadata-url-https
   - oauth-no-implicit-flow
   - oauth-no-password-flow
+  - oidc-url-https
 warning:
+  - api-key-not-in-query
   - card-security-declared
   - oauth-pkce-required
+info:
+  - card-signed
 validations:
   interface-url-https:
     message: This supportedInterfaces entry's `url` does not start with https://. Serve the interface over TLS and publish its https URL (A2A v1.0 requires encrypted transport in production).
@@ -178,3 +185,80 @@ validations:
         maxCount: 0
       core.flows / snakeDevice.code:
         maxCount: 0
+  oidc-url-https:
+    message: This OpenID Connect scheme has no `openIdConnectUrl`, or it does not start with https://. Set the https URL of the OpenID Provider discovery document.
+    documentation: |
+      Clients fetch issuer, keys and endpoints from openIdConnectUrl. A2A v1.0 marks it
+      REQUIRED, and OpenID Connect Discovery requires TLS. Over plain HTTP an attacker can
+      substitute signing keys and forge identities. A snake_case `open_id_connect_url` also
+      fails this rule, because clients don't read it.
+    examples:
+      valid: |
+        {"openIdConnectSecurityScheme": {"openIdConnectUrl": "https://id.example.com/.well-known/openid-configuration"}}
+      invalid: |
+        {"openIdConnectSecurityScheme": {"openIdConnectUrl": "http://id.example.com/.well-known/openid-configuration"}}
+    targetClass: core.openIdConnectSecurityScheme
+    propertyConstraints:
+      core.openIdConnectUrl:
+        minCount: 1
+        pattern: "^https://"
+  api-key-not-in-query:
+    message: This API key scheme sends the key in the query string. Set `location` to header (or cookie), because query strings end up in logs, proxies and browser history.
+    documentation: |
+      URLs are logged by gateways, proxies and servers and kept in browser history, so a key in
+      the query string leaks far beyond the agent. Send it in a header instead.
+    examples:
+      valid: |
+        {"apiKeySecurityScheme": {"location": "header", "name": "X-API-Key"}}
+      invalid: |
+        {"apiKeySecurityScheme": {"location": "query", "name": "api_key"}}
+    targetClass: core.apiKeySecurityScheme
+    propertyConstraints:
+      core.location:
+        in: [header, cookie]
+  card-signed:
+    message: Agent Card has no `signatures`. Sign the card (JWS over the JCS-canonicalized card) so clients can verify it was not tampered with.
+    documentation: |
+      A2A v1.0 lets publishers sign the Agent Card with JWS. A signed card lets clients detect
+      a card altered in transit or in a registry, for example one pointing at an attacker's
+      URL. This rule checks presence only; verifying the signature is a runtime concern. This
+      finding is reported on the asset, not on a line of the card.
+    examples:
+      valid: |
+        {"signatures": [{"protected": "eyJhbGciOiJFUzI1NiJ9", "signature": "c2lnbmF0dXJl"}]}
+      invalid: |
+        {"name": "Weather Agent"}
+    targetClass: api.Project
+    if:
+      propertyConstraints:
+        catalog.classifier:
+          in: [a2a-v1-card]
+    then:
+      propertyConstraints:
+        api.contract / doc.encodes / core.signatures:
+          minCount: 1
+  card-security-json-camel-case:
+    message: Agent Card uses supported_interfaces, security_schemes or security_requirements. Rename them to camelCase, because snake_case hides interfaces and schemes from clients and from every safety rule.
+    documentation: |
+      A2A v1.0 JSON MUST use camelCase. Anypoint's card schema accepts these snake_case aliases
+      but stores them under different names, so an http interface or a weak scheme behind them
+      passes every other safety rule unseen. This finding is reported on the asset, not on a
+      line of the card.
+    examples:
+      valid: |
+        {"supportedInterfaces": [{"url": "https://agent.example.com/a2a", "protocolBinding": "JSONRPC", "protocolVersion": "1.0"}]}
+      invalid: |
+        {"supported_interfaces": [{"url": "http://agent.example.com/a2a", "protocolBinding": "JSONRPC", "protocolVersion": "1.0"}]}
+    targetClass: api.Project
+    if:
+      propertyConstraints:
+        catalog.classifier:
+          in: [a2a-v1-card]
+    then:
+      propertyConstraints:
+        api.contract / doc.encodes / snakeSupported.interfaces:
+          maxCount: 0
+        api.contract / doc.encodes / snakeSecurity.schemes:
+          maxCount: 0
+        api.contract / doc.encodes / snakeSecurity.requirements:
+          maxCount: 0

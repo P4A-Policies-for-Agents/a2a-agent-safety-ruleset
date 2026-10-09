@@ -1,0 +1,3 @@
+card-security-declared:Warning
+card-security-json-camel-case:Violation
+extended-card-requires-auth:Violation

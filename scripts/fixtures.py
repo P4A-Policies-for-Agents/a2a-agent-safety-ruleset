@@ -217,6 +217,20 @@ BAD = {
         "tokenUrl": "https://auth.example.com/token",
         "scopes": {"weather:read": "Read weather data"},
     }),
+    "oidc-url-https": lambda d: put(
+        scheme(d, "oidc"), "openIdConnectUrl", "http://id.example.com/.well-known/openid-configuration"
+    ),
+    "oidc-url-https.missing": lambda d: scheme(d, "oidc").pop("openIdConnectUrl"),
+    # Review Focus 4: the snake_case alias reads as a missing openIdConnectUrl.
+    "oidc-url-https.snake-case": lambda d: rename(scheme(d, "oidc"), "openIdConnectUrl", "open_id_connect_url"),
+    "api-key-not-in-query": lambda d: put(scheme(d, "key"), "location", "query"),
+    "card-signed": lambda d: d.pop("signatures"),
+    "card-security-json-camel-case": lambda d: rename(d, "supportedInterfaces", "supported_interfaces"),
+    # One fixture per alias, so a typo in a snake* prefix namespace (ruleset.yaml) can't hide.
+    "card-security-json-camel-case.security-schemes": lambda d: put(d, "security_schemes", copy.deepcopy(d["securitySchemes"])),
+    "card-security-json-camel-case.security-requirements": lambda d: rename(
+        d, "securityRequirements", "security_requirements"
+    ),
 }
 
 # Fixtures that legitimately trip more than one rule: name -> every "<id>:<Severity>" expected.
@@ -228,6 +242,11 @@ EXPECTED = {
     "extended-card-requires-auth.no-requirements": [
         "extended-card-requires-auth:Violation",
         "card-security-declared:Warning",
+    ],
+    "card-security-json-camel-case.security-requirements": [
+        "card-security-json-camel-case:Violation",
+        "card-security-declared:Warning",
+        "extended-card-requires-auth:Violation",
     ],
 }
 
