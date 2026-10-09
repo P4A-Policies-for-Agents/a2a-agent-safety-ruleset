@@ -9,7 +9,10 @@ prefixes:
   api: http://anypoint.com/vocabs/api#
   catalog: http://anypoint.com/vocabs/digital-repository#
 violation:
+  - extended-card-requires-auth
   - interface-url-https
+warning:
+  - card-security-declared
 validations:
   interface-url-https:
     message: This supportedInterfaces entry's `url` does not start with https://. Serve the interface over TLS and publish its https URL (A2A v1.0 requires encrypted transport in production).
@@ -26,3 +29,58 @@ validations:
     propertyConstraints:
       core.url:
         pattern: "^https://"
+  extended-card-requires-auth:
+    message: Agent Card sets capabilities.extendedAgentCard to true but declares no `securitySchemes` or no `securityRequirements`. Declare the scheme clients use to fetch the extended card (A2A v1.0 requires the extended card to be authenticated).
+    documentation: |
+      The extended Agent Card can expose skills and details hidden from the public card. A2A
+      v1.0 says clients MUST authenticate to fetch it, using a scheme declared in the public
+      card. A card that offers an extended card without declaring any scheme either leaks it
+      or makes it unreachable. This finding is reported on the asset, not on a line of the
+      card.
+    examples:
+      valid: |
+        {"capabilities": {"extendedAgentCard": true},
+         "securitySchemes": {"bearer": {"httpAuthSecurityScheme": {"scheme": "Bearer"}}},
+         "securityRequirements": [{"schemes": {"bearer": {"list": []}}}]}
+      invalid: |
+        {"capabilities": {"extendedAgentCard": true}}
+    targetClass: api.Project
+    if:
+      and:
+        - propertyConstraints:
+            catalog.classifier:
+              in: [a2a-v1-card]
+        - propertyConstraints:
+            api.contract / doc.encodes / core.capabilities / core.extendedAgentCard:
+              minCount: 1
+              in: [true]
+    then:
+      propertyConstraints:
+        api.contract / doc.encodes / core.securitySchemes:
+          minCount: 1
+        api.contract / doc.encodes / core.securityRequirements:
+          minCount: 1
+  card-security-declared:
+    message: Agent Card declares no `securitySchemes` or no `securityRequirements`. Declare how clients authenticate so gateways can enforce it and clients can obtain credentials.
+    documentation: |
+      Clients and gateways read the card to learn how to authenticate. A card without declared
+      security is either open to anyone or protected in a way clients can't discover. If the
+      agent really is public, document that and accept this warning. This finding is reported
+      on the asset, not on a line of the card.
+    examples:
+      valid: |
+        {"securitySchemes": {"bearer": {"httpAuthSecurityScheme": {"scheme": "Bearer"}}},
+         "securityRequirements": [{"schemes": {"bearer": {"list": []}}}]}
+      invalid: |
+        {"name": "Weather Agent"}
+    targetClass: api.Project
+    if:
+      propertyConstraints:
+        catalog.classifier:
+          in: [a2a-v1-card]
+    then:
+      propertyConstraints:
+        api.contract / doc.encodes / core.securitySchemes:
+          minCount: 1
+        api.contract / doc.encodes / core.securityRequirements:
+          minCount: 1

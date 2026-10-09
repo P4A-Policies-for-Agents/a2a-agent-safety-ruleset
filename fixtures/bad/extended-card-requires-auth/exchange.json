@@ -1,0 +1,9 @@
+{
+  "main": "agent-card.json",
+  "name": "bad-extended-card-requires-auth",
+  "groupId": "p4a-fixtures",
+  "assetId": "bad-extended-card-requires-auth",
+  "version": "1.0.0",
+  "classifier": "a2a-v1-card",
+  "descriptorVersion": "1.0.0"
+}

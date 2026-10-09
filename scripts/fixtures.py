@@ -182,10 +182,32 @@ BAD = {
     "interface-url-https": lambda d: put(iface(d), "url", "http://weather.example.com/a2a/v1"),
     # Review Focus 3: only the second interface is plain HTTP.
     "interface-url-https.second-interface": lambda d: put(iface(d, 1), "url", "http://weather.example.com/a2a/grpc"),
+    "extended-card-requires-auth": lambda d: (d.pop("securitySchemes"), d.pop("securityRequirements")),
+    "extended-card-requires-auth.no-requirements": lambda d: d.pop("securityRequirements"),
+    # extendedAgentCard false or absent: only the card-level warning may fire.
+    "card-security-declared": lambda d: (
+        put(d["capabilities"], "extendedAgentCard", False),
+        d.pop("securitySchemes"),
+        d.pop("securityRequirements"),
+    ),
+    "card-security-declared.no-extended-flag": lambda d: (
+        d["capabilities"].pop("extendedAgentCard"),
+        d.pop("securitySchemes"),
+        d.pop("securityRequirements"),
+    ),
 }
 
 # Fixtures that legitimately trip more than one rule: name -> every "<id>:<Severity>" expected.
-EXPECTED = {}
+EXPECTED = {
+    "extended-card-requires-auth": [
+        "extended-card-requires-auth:Violation",
+        "card-security-declared:Warning",
+    ],
+    "extended-card-requires-auth.no-requirements": [
+        "extended-card-requires-auth:Violation",
+        "card-security-declared:Warning",
+    ],
+}
 
 
 def main():
